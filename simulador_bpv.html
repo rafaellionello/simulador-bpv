@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Simulador BPV · Detergente Louças</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    :root {
+      --c-price: #1D4ED8;
+      --b-price: #EFF6FF;
+      --c-prod: #57534E;
+      --b-prod: #F5F5F4;
+      --c-brand: #047857;
+      --b-brand: #ECFDF5;
+      --c-rel: #5B21B6;
+      --b-rel: #F5F3FF;
+      --border: #E2E8F0;
+      --r: 12px;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      font: 13.5px/1.55 "Segoe UI", system-ui, sans-serif;
+      background: #F1F5F9;
+      color: #0F172A;
+      padding: 22px 26px
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      font-weight: 700
+    }
+
+    .meta {
+      font-size: .76rem;
+      color: #64748B;
+      margin: 2px 0 16px
+    }
+
+    .card {
+      background: #fff;
+      border-radius: var(--r);
+      border: 1px solid var(--border)
+    }
+
+    .ptitle {
+      font-size: .62rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #64748B;
+      margin-bottom: 10px
+    }
+
+    #top {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+      align-items: stretch
+    }
+
+    #shares-panel {
+      flex: 1;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column
+    }
+
+    .ch-wrap {
+      position: relative;
+      flex: 1;
+      min-height: 0
+    }
+
+    #analysis-panel {
+      flex: 1;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px
+    }
+
+    @media(max-width:900px) {
+      #top {
+        flex-direction: column
+      }
+    }
+
+    #brand-btns {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap
+    }
+
+    .bbtn {
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: .72rem;
+      font-weight: 600;
+      background: #F8FAFC;
+      color: #64748B;
+      cursor: pointer;
+      letter-spacing: .04em;
+      transition: all .15s
+    }
+
+    .bbtn:hover {
+      background: #EFF6FF;
+      color: #1D4ED8;
+      border-color: #93C5FD
+    }
+
+    .bbtn.active {
+      background: #1E293B;
+      color: #F8FAFC;
+      border-color: #1E293B
+    }
+
+    .metrics {
+      display: flex;
+      gap: 6px
+    }
+
+    .mbox {
+      flex: 1;
+      background: #F8FAFC;
+      border-radius: 8px;
+      padding: 6px 8px;
+      text-align: center
+    }
+
+    .mbox .val {
+      font-size: 1.02rem;
+      font-weight: 700
+    }
+
+    .mbox .lbl {
+      font-size: .58rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #94A3B8;
+      margin-top: 1px
+    }
+
+    .delta {
+      font-size: .68rem;
+      font-weight: 600;
+      margin-left: 3px
+    }
+
+    .delta.up {
+      color: #047857
+    }
+
+    .delta.dn {
+      color: #B91C1C
+    }
+
+    .prem-tbl {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .78rem
+    }
+
+    .prem-tbl th {
+      text-align: left;
+      padding: 4px 8px;
+      border-bottom: 2px solid #E2E8F0;
+      color: #64748B;
+      font-size: .6rem;
+      text-transform: uppercase;
+      letter-spacing: .05em
+    }
+
+    .prem-tbl td {
+      padding: 4px 8px;
+      border-bottom: 1px solid #F1F5F9
+    }
+
+    .prem-tbl .pos {
+      color: #047857;
+      font-weight: 600
+    }
+
+    .prem-tbl .neg {
+      color: #B91C1C;
+      font-weight: 600
+    }
+
+    #wf-wrap {
+      position: relative;
+      height: 280px
+    }
+
+    .sep {
+      font-size: .58rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #94A3B8;
+      margin: 2px 0 0
+    }
+
+    #grid {
+      display: grid;
+      width: 100%;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+
+    .bcard {
+      overflow: hidden
+    }
+
+    .bhdr {
+      padding: 9px 14px;
+      background: #1E293B;
+      color: #F8FAFC;
+      font-weight: 700;
+      font-size: .88rem;
+      letter-spacing: .06em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center
+    }
+
+    .hdr-btns {
+      display: flex;
+      gap: 5px;
+      align-items: center
+    }
+
+    .reset-btn {
+      font-size: .65rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, .12);
+      color: #CBD5E1;
+      border: none;
+      cursor: pointer
+    }
+
+    .reset-btn:hover {
+      background: rgba(255, 255, 255, .22)
+    }
+
+    .toggle-btn {
+      font-size: .6rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 5px;
+      background: #16A34A;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      letter-spacing: .05em;
+      transition: background .15s
+    }
+
+    .toggle-btn.off {
+      background: rgba(255, 255, 255, .12);
+      color: #94A3B8
+    }
+
+    .toggle-btn:hover {
+      opacity: .85
+    }
+
+    .bcard.disabled {
+      opacity: .38;
+      filter: grayscale(.6)
+    }
+
+    .bcard.disabled .sec {
+      pointer-events: none
+    }
+
+    .bbtn.off {
+      opacity: .35;
+      text-decoration: line-through;
+      cursor: not-allowed
+    }
+
+    #brand-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 6px
+    }
+
+    /* ── Pill toggle R$ / Índice ── */
+    .pill-toggle {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      background: #E5E7EB;
+      border-radius: 999px;
+      padding: 2px;
+      gap: 0
+    }
+
+    .pill-seg {
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: #6B7280;
+      transition: background .15s, color .15s;
+      white-space: nowrap
+    }
+
+    .pill-seg.active {
+      background: #5DCAA5;
+      color: #fff
+    }
+
+    .sec {
+      padding: 10px 14px;
+      border-bottom: 1px solid #F1F5F9
+    }
+
+    .sec:last-child {
+      border-bottom: none
+    }
+
+    .stag {
+      display: inline-block;
+      font-size: .6rem;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-bottom: 7px
+    }
+
+    .sp .stag {
+      color: var(--c-price);
+      background: var(--b-price)
+    }
+
+    .sr .stag {
+      color: var(--c-rel);
+      background: var(--b-rel)
+    }
+
+    .sb {
+      background: #F0F0F0
+    }
+
+    .sb .stag {
+      color: #4B5563;
+      background: #E5E7EB
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 5px
+    }
+
+    .row label {
+      font-size: .76rem;
+      color: #475569;
+      width: 88px;
+      flex-shrink: 0
+    }
+
+    .row input[type=range] {
+      flex: 1;
+      cursor: pointer;
+      height: 3px
+    }
+
+    .row .v {
+      font-size: .75rem;
+      font-weight: 600;
+      width: 44px;
+      text-align: right
+    }
+
+    .row-d {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 5px;
+      opacity: .5
+    }
+
+    .row-d label {
+      font-size: .76rem;
+      color: #475569;
+      width: 88px;
+      flex-shrink: 0;
+      font-style: italic
+    }
+
+    .row-d .v {
+      font-size: .75rem;
+      width: 44px;
+      text-align: right;
+      color: #64748B;
+      font-style: italic;
+      font-weight: 600
+    }
+
+    .num-input {
+      width: 80px;
+      padding: 4px 8px;
+      border: 1px solid #D1D5DB;
+      border-radius: 6px;
+      font-size: .82rem;
+      text-align: right;
+      font-family: inherit
+    }
+
+    .num-input:focus {
+      outline: none;
+      border-color: var(--c-price);
+      box-shadow: 0 0 0 2px rgba(29, 78, 216, .1)
+    }
+
+    #reset-all {
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 5px 14px;
+      background: #F1F5F9;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: .76rem;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer
+    }
+
+    #reset-all:hover {
+      background: #E2E8F0
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Simulador de Valor de Marca</h1>
+  <p class="meta">Detergente Líquido para Louças · Modelo Logit Multinomial Calibrado</p>
+
+  <div id="top">
+    <div class="card" id="shares-panel">
+      <div class="ptitle">Shares de mercado simulados</div>
+      <div class="ch-wrap"><canvas id="ch"></canvas></div>
+    </div>
+    <div class="card" id="analysis-panel">
+      <div class="ptitle">Análise de marca</div>
+      <div id="brand-row">
+        <div id="brand-btns"></div>
+        <div class="pill-toggle">
+          <button id="seg-rs" class="pill-seg">R$</button>
+          <button id="seg-idx" class="pill-seg active">Índice</button>
+        </div>
+      </div>
+      <div class="metrics" id="metrics"></div>
+      <p class="sep">Prêmio de preço vs. concorrentes</p>
+      <table class="prem-tbl">
+        <thead>
+          <tr>
+            <th>vs.</th>
+            <th id="th-prem1">Prêmio Índice</th>
+            <th>Prêmio %</th>
+          </tr>
+        </thead>
+        <tbody id="prem-body"></tbody>
+      </table>
+      <p class="sep" id="wf-sep">Decomposição do WTP (Índice)</p>
+      <div id="wf-wrap"><canvas id="wf"></canvas></div>
+    </div>
+  </div>
+
+  <button id="reset-all">↺ Restaurar todos os defaults</button>
+  <div id="grid"></div>
+
+  <div id="notes" style="margin-top:20px;padding:16px 20px;background:#fff;
+  border-radius:12px;border:1px solid #E2E8F0;font-size:.78rem;color:#475569;line-height:1.7">
+    <p style="font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+     color:#94A3B8;margin-bottom:10px">Notas metodológicas</p>
+    <ul style="padding-left:1.2em;display:flex;flex-direction:column;gap:4px">
+      <li><strong>Amostra:</strong> 201 respondentes, coleta em fevereiro de 2026.</li>
+      <li><strong>Desenho:</strong> Choice-based conjoint (CBC) com 5 marcas + opt-out, combinado com indicadores de
+        relação com a marca (conhecimento, consideração e preferência).</li>
+      <li><strong>Referência de categoria:</strong> Expert representa o produto sem marca (unbranded / marca própria do
+        Carrefour). O <em>product equity</em> captura o valor de categoria; o <em>baseline</em> de marca é o prêmio
+        da ASC calibrada sobre a Expert — dinâmico, recalibrado quando o slider de <em>última compra</em> é alterado.
+      </li>
+      <li><strong>Preços de referência (mercado):</strong> <span id="notes-prices"></span>.</li>
+      <li><strong>Modelo:</strong> Multinomial Logit (MNL) com efeitos de funil nas alternativas de marca. ASCs
+        calibradas para reproduzir shares de última compra declarados.</li>
+      <li><strong>Decomposição do WTP:</strong>
+        <em>Product equity</em> (fixo) = ASC Expert / |β<sub>preço</sub>|;
+        <em>Brand equity</em> = <em>Baseline</em> (ASC calibrada da marca vs. Expert, dinâmico) + incremental do funil
+        cognitivo
+        (Conhece, Considera, Prefere), em R$.
+      </li>
+      <li><strong>Simulação:</strong> softmax — utilidades com product equity, baseline, betas de funil e preço; shares
+        via exp(V<sub>j</sub>) / Σ exp(V<sub>k</sub>).</li>
+      <li><strong>Receita simulada:</strong> share simulado × preço da marca × 1.000 compradores (tamanho de mercado
+        hipotético). O valor representa receita relativa entre cenários — <em>não</em> é faturamento absoluto do
+        mercado.</li>
+    </ul>
+  </div>
+
+  <script>
+    const M = {
+  "b_price": -0.9462286461750077,
+  "bp_abs": 0.9462286461750077,
+  "beta_conhece": 0.8766838030723618,
+  "beta_cons": 2.1244700212588503,
+  "beta_prefere": 3.0315166101287576,
+  "product_equity_base_rs": 1.1010881077894679,
+  "baseline_rs": {
+    "ype": 2.107134135379786,
+    "limpol": 1.6814235551694747,
+    "minuano": 1.2511356696434226,
+    "expert": 0.0,
+    "odd": 1.2286260988576938
+  },
+  "price_min": 0.5,
+  "price_max": 7.1,
+  "defaults": {
+    "ype": {
+      "conhece": 0.14925373134328357,
+      "considera": 0.31343283582089554,
+      "prefere": 0.527363184079602,
+      "uc": 0.48258706467661694,
+      "price": 2.85
+    },
+    "limpol": {
+      "conhece": 0.2537313432835821,
+      "considera": 0.48258706467661694,
+      "prefere": 0.24378109452736318,
+      "uc": 0.29850746268656714,
+      "price": 2.5
+    },
+    "minuano": {
+      "conhece": 0.40298507462686567,
+      "considera": 0.40298507462686567,
+      "prefere": 0.13930348258706468,
+      "uc": 0.13930348258706468,
+      "price": 2.5
+    },
+    "expert": {
+      "conhece": 0.19402985074626866,
+      "considera": 0.15920398009950248,
+      "prefere": 0.009950248756218905,
+      "uc": 0.01990049751243781,
+      "price": 2.15
+    },
+    "odd": {
+      "conhece": 0.3383084577114428,
+      "considera": 0.22388059701492538,
+      "prefere": 0.04477611940298507,
+      "uc": 0.05472636815920398,
+      "price": 2.7
+    }
+  }
+};
+    const MARCAS = Object.keys(M.defaults);
+    const PAL = {
+      optout: '#CBD5E1', ype: '#1D4ED8', limpol: '#065F46',
+      minuano: '#5B21B6', expert: '#B45309', odd: '#9F1239'
+    };
+
+    const WF_LBL = ['Product eq.', 'Baseline', 'Conhece', 'Considera', 'Prefere', 'Total'];
+    const WF_COL = ['#A8A29E', '#065F46', '#10B981', '#34D399', '#6EE7B7', '#1E293B'];
+
+    const PE_FIXED = M.product_equity_base_rs;
+    const BASELINE = M.baseline_rs;
+    /* ASC em unidades de utilidade — actualizadas a cada calibração */
+    const ASC_EXPERT_UTIL = PE_FIXED * M.bp_abs;
+    const ASC_CAL_UTIL = {};
+    MARCAS.forEach(m => { ASC_CAL_UTIL[m] = (PE_FIXED + BASELINE[m]) * M.bp_abs; });
+    /* Âncora: ASCs originais salvos após a calibração inicial (imutável) */
+    const ASC_ORIG = {};
+
+    /* Estado armazena valores CUMULATIVOS (funil clássico):
+       conhece ≥ considera ≥ prefere, onde conhece = % que conhece a marca.
+       JSON traz excludentes; convertemos na inicialização. */
+    const DEF = {};
+    MARCAS.forEach(m => {
+      const d = M.defaults[m];
+      DEF[m] = {
+        price: d.price,
+        conhece: d.conhece + d.considera + d.prefere,
+        considera: d.considera + d.prefere,
+        prefere: d.prefere,
+        uc: d.uc
+      };
+    });
+    const S = JSON.parse(JSON.stringify(DEF));
+    const ENABLED = {};
+    MARCAS.forEach(m => ENABLED[m] = true);
+    let selBrand = MARCAS[0];
+    let idxMode = true; /* true = Índice (padrão), false = R$ */
+
+    function activeMarks() { return MARCAS.filter(m => ENABLED[m]); }
+
+    function toggleBrand(m) {
+      const active = activeMarks();
+      if (ENABLED[m] && active.length <= 1) return; // pelo menos uma ativa
+
+      if (ENABLED[m]) {
+        // desligar: apenas exclui do softmax, sem tocar nos sliders das demais
+        ENABLED[m] = false;
+        const others = activeMarks();
+        if (selBrand === m) selBrand = others[0];
+      } else {
+        // religar: restaurar defaults
+        ENABLED[m] = true;
+        Object.assign(S[m], JSON.parse(JSON.stringify(DEF[m])));
+        syncInputs(m);
+      }
+
+      // visuais do card
+      const card = document.querySelector(`.bcard[data-m="${m}"]`);
+      if (card) card.classList.toggle('disabled', !ENABLED[m]);
+      const tbtn = document.querySelector(`.toggle-btn[data-m="${m}"]`);
+      if (tbtn) { tbtn.classList.toggle('off', !ENABLED[m]); tbtn.textContent = ENABLED[m] ? 'ON' : 'OFF'; }
+
+      calibrateASCs();
+      refresh();
+    }
+
+    /** Converte cumulativo → excludente para a fórmula de utilidade */
+    function exclFromCum(s) {
+      return {
+        conhece: s.conhece - s.considera,
+        considera: s.considera - s.prefere,
+        prefere: s.prefere
+      };
+    }
+
+    /** Garante conhece ≥ considera ≥ prefere e ∈ [0,1] */
+    function enforceCascade(m) {
+      const s = S[m];
+      if (s.considera > s.conhece) s.conhece = s.considera;
+      if (s.prefere > s.considera) s.considera = s.prefere;
+      if (s.conhece > 1) s.conhece = 1;
+      if (s.considera > 1) s.considera = 1;
+      if (s.prefere > 1) s.prefere = 1;
+    }
+
+    /**
+     * Redistribui "Prefere" entre marcas mantendo o total fixo.
+     * delta = newVal − oldVal é absorvido proporcionalmente pelas demais.
+     */
+    function redistributePrefere(m, newVal) {
+      const oldVal = S[m].prefere;
+      const delta = newVal - oldVal;
+      if (Math.abs(delta) < 1e-9) { S[m].prefere = newVal; return; }
+
+      const others = MARCAS.filter(x => x !== m && ENABLED[x]);
+      const defaultsTotal = others.reduce((a, o) => a + DEF[o].prefere, 0);
+
+      S[m].prefere = newVal;
+
+      if (defaultsTotal > 1e-9) {
+        others.forEach(o => {
+          S[o].prefere = Math.max(0, Math.min(1,
+            S[o].prefere - delta * (DEF[o].prefere / defaultsTotal)));
+        });
+      }
+
+      MARCAS.forEach(o => enforceCascade(o));
+      MARCAS.forEach(o => syncFunnel(o));
+    }
+
+    /**
+     * Redistribui "Última compra" entre marcas mantendo as proporções relativas
+     * dos defaults (mesma lógica de redistributePrefere).
+     * Após redistribuição, recalibra as ASCs.
+     */
+    function redistributeUC(m, newVal) {
+      const oldVal = S[m].uc;
+      const delta = newVal - oldVal;
+      if (Math.abs(delta) < 1e-9) { S[m].uc = newVal; return; }
+
+      const others = MARCAS.filter(x => x !== m && ENABLED[x]);
+      const defaultsTotal = others.reduce((a, o) => a + DEF[o].uc, 0);
+
+      S[m].uc = Math.max(0, Math.min(1, newVal));
+
+      if (defaultsTotal > 1e-9) {
+        others.forEach(o => {
+          S[o].uc = Math.max(0, Math.min(1,
+            S[o].uc - delta * (DEF[o].uc / defaultsTotal)));
+        });
+      }
+
+      MARCAS.forEach(o => syncUCInput(o));
+      calibrateASCs();
+    }
+
+    function calcShares() {
+      const U = { optout: 0 };
+      activeMarks().forEach(m => {
+        const e = exclFromCum(S[m]);
+        U[m] = ASC_CAL_UTIL[m]
+          + M.b_price * S[m].price
+          + M.beta_conhece * e.conhece
+          + M.beta_cons * e.considera
+          + M.beta_prefere * e.prefere;
+      });
+      const mx = Math.max(...Object.values(U));
+      let Z = 0; const E = {};
+      Object.keys(U).forEach(k => { E[k] = Math.exp(U[k] - mx); Z += E[k]; });
+      const P = {};
+      Object.keys(E).forEach(k => P[k] = E[k] / Z);
+      return P;
+    }
+
+    function calcWTP(m) {
+      const e = exclFromCum(S[m]);
+      const pe = PE_FIXED;
+      const baseline = (ASC_CAL_UTIL[m] - ASC_EXPERT_UTIL) / M.bp_abs;
+      const conhece = (M.beta_conhece * e.conhece) / M.bp_abs;
+      const considera = (M.beta_cons * e.considera) / M.bp_abs;
+      const prefere = (M.beta_prefere * e.prefere) / M.bp_abs;
+      const total = pe + baseline + conhece + considera + prefere;
+      return { pe, baseline, conhece, considera, prefere, total };
+    }
+
+    /** Calcula shares para um estado arbitrário (usado para defaults) */
+    function calcSharesFor(st) {
+      const U = { optout: 0 };
+      MARCAS.forEach(m => {
+        const ex = {
+          conhece: st[m].conhece - st[m].considera,
+          considera: st[m].considera - st[m].prefere,
+          prefere: st[m].prefere
+        };
+        U[m] = ASC_CAL_UTIL[m]
+          + M.b_price * st[m].price
+          + M.beta_conhece * ex.conhece
+          + M.beta_cons * ex.considera
+          + M.beta_prefere * ex.prefere;
+      });
+      const mx = Math.max(...Object.values(U));
+      let Z = 0; const E = {};
+      Object.keys(U).forEach(k => { E[k] = Math.exp(U[k] - mx); Z += E[k]; });
+      const P = {};
+      Object.keys(E).forEach(k => P[k] = E[k] / Z);
+      return P;
+    }
+    /**
+     * Recalibra ASC_CAL_UTIL para que os shares condicionais entre marcas
+     * reproduzam os targets de última compra em S[m].uc.
+     * Após a iteração, ancora o nível absoluto: a média das ASCs é fixada
+     * na média original, de modo que só as *diferenças* entre marcas mudem.
+     */
+    function calibrateASCs() {
+      const TOL = 1e-3, MAX_ITER = 20;
+      const acts = activeMarks();
+
+      const ucRaw = {};
+      acts.forEach(m => { ucRaw[m] = Math.max(0, S[m].uc || 0); });
+      const ucTotal = acts.reduce((s, m) => s + ucRaw[m], 0);
+      if (ucTotal < 1e-9) return;
+      const targets = {};
+      acts.forEach(m => { targets[m] = ucRaw[m] / ucTotal; });
+
+      function condShares(ascU) {
+        const utils = { optout: 0 };
+        acts.forEach(m => {
+          const d = M.defaults[m];
+          utils[m] = ascU[m]
+            + M.b_price * d.price
+            + M.beta_conhece * d.conhece
+            + M.beta_cons * d.considera
+            + M.beta_prefere * d.prefere;
+        });
+        const mx = Math.max(...Object.values(utils));
+        const E = {}; let Z = 0;
+        Object.keys(utils).forEach(k => { E[k] = Math.exp(utils[k] - mx); Z += E[k]; });
+        const bTotal = acts.reduce((s, m) => s + E[m], 0);
+        const cond = {};
+        acts.forEach(m => { cond[m] = bTotal > 1e-12 ? E[m] / bTotal : 0; });
+        return cond;
+      }
+
+      /* ponto de partida: ASCs originais (evita acumular drift de calibrações anteriores) */
+      const curAsc = {};
+      acts.forEach(m => { curAsc[m] = ASC_ORIG[m] != null ? ASC_ORIG[m] : ASC_CAL_UTIL[m]; });
+
+      for (let it = 0; it < MAX_ITER; it++) {
+        const sp = condShares(curAsc);
+        let maxErr = 0;
+        acts.forEach(m => { maxErr = Math.max(maxErr, Math.abs(targets[m] - sp[m])); });
+        if (maxErr < TOL) break;
+        acts.forEach(m => {
+          if (sp[m] > 1e-12 && targets[m] > 1e-12)
+            curAsc[m] += Math.log(targets[m] / sp[m]);
+        });
+      }
+
+      /* Ancorar: manter a média das ASCs igual à média original */
+      const origMean = acts.reduce((s, m) => s + (ASC_ORIG[m] != null ? ASC_ORIG[m] : curAsc[m]), 0) / acts.length;
+      const curMean = acts.reduce((s, m) => s + curAsc[m], 0) / acts.length;
+      const drift = curMean - origMean;
+      acts.forEach(m => { ASC_CAL_UTIL[m] = curAsc[m] - drift; });
+    }
+
+    calibrateASCs();
+    /* Salvar ASCs pós-calibração inicial como âncora imutável */
+    MARCAS.forEach(m => { ASC_ORIG[m] = ASC_CAL_UTIL[m]; });
+
+    /** Restaura as ASCs para os valores originais (sem recalibrar). */
+    function resetASCs() {
+      MARCAS.forEach(m => { ASC_CAL_UTIL[m] = ASC_ORIG[m]; });
+    }
+
+    const P_DEF = calcSharesFor(DEF);
+
+    /* ── Shares chart ──────────────────────────── */
+    const shareLabel = {
+      id: 'sLbl',
+      afterDatasetsDraw(ch) {
+        const { ctx } = ch, meta = ch.getDatasetMeta(0);
+        ctx.save(); ctx.fillStyle = '#374151';
+        ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        meta.data.forEach((b, i) => {
+          const v = ch.data.datasets[0].data[i];
+          if (v) ctx.fillText(`${(v * 100).toFixed(1)}%`, b.x + 5, b.y);
+        });
+        ctx.restore();
+      }
+    };
+
+    const shareCh = new Chart(document.getElementById('ch'), {
+      type: 'bar', plugins: [shareLabel],
+      data: {
+        labels: [], datasets: [{
+          data: [], backgroundColor: [], borderRadius: 5, borderSkipped: false,
+          barPercentage: 0.78, categoryPercentage: 0.88
+        }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        layout: { padding: { right: 52, top: 2, bottom: 2, left: 0 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: c => `  ${(c.raw * 100).toFixed(1)}%` } }
+        },
+        scales: {
+          x: {
+            min: 0, ticks: { callback: v => `${(v * 100).toFixed(0)}%` },
+            grid: { display: false },
+            border: { display: true, color: '#94A3B8', width: 1.5 }
+          },
+          y: {
+            grid: { display: false },
+            border: { display: true, color: '#94A3B8', width: 1.5 }
+          }
+        }
+      }
+    });
+
+    /* ── Waterfall chart (6 barras) ────────────── */
+    const wfConn = {
+      id: 'wfConn',
+      afterDatasetsDraw(ch) {
+        const meta = ch.getDatasetMeta(0), { ctx } = ch, data = ch.data.datasets[0].data;
+        if (!data || data.length < 6) return;
+        ctx.save(); ctx.strokeStyle = '#94A3B8'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]);
+        for (let i = 0; i < 4; i++) {
+          const yPx = ch.scales.y.getPixelForValue(data[i][1]);
+          const b = meta.data[i], n = meta.data[i + 1];
+          ctx.beginPath();
+          ctx.moveTo(b.x + b.width / 2, yPx);
+          ctx.lineTo(n.x - n.width / 2, yPx);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    };
+
+    const wfLbl = {
+      id: 'wfLbl',
+      afterDatasetsDraw(ch) {
+        const meta = ch.getDatasetMeta(0), { ctx } = ch, data = ch.data.datasets[0].data;
+        if (!data || !data.length) return;
+        const totalVal = data[5] ? data[5][1] : 1;
+        ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#475569';
+        meta.data.forEach((b, i) => {
+          const [s0, e] = data[i], v = e - s0;
+          const pct = totalVal ? Math.round(v / totalVal * 100) : 0;
+          const yTop = Math.min(b.y, b.base);
+          const lbl = idxMode ? `${v.toFixed(0)} (${pct}%)` : `R$ ${v.toFixed(2)} (${pct}%)`;
+          ctx.fillText(lbl, b.x, yTop - 4);
+        });
+        ctx.restore();
+      }
+    };
+
+    const wfBracket = {
+      id: 'wfBracket',
+      afterDraw(ch) {
+        const { ctx, scales: { x } } = ch;
+        const x1 = x.getPixelForValue(1), x4 = x.getPixelForValue(4);
+        const y = ch.chartArea.bottom + 30;
+        ctx.save();
+        ctx.strokeStyle = '#059669'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x4, y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x1, y - 3); ctx.lineTo(x1, y + 3); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x4, y - 3); ctx.lineTo(x4, y + 3); ctx.stroke();
+        ctx.fillStyle = '#059669';
+        ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('CUSTOMER-BASED BRAND EQUITY', (x1 + x4) / 2, y + 16);
+        ctx.restore();
+      }
+    };
+
+    const wfCh = new Chart(document.getElementById('wf'), {
+      type: 'bar', plugins: [wfConn, wfLbl, wfBracket],
+      data: {
+        labels: WF_LBL,
+        datasets: [{
+          data: [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]],
+          backgroundColor: WF_COL,
+          borderRadius: 4, borderSkipped: false, barPercentage: 0.62
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 28, bottom: 30 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: c => { const [s, e] = c.raw; return idxMode ? ` ${(e - s).toFixed(0)}` : ` R$ ${(e - s).toFixed(2)}`; } } }
+        },
+        scales: {
+          y: {
+            suggestedMin: 0, grid: { display: false }, ticks: { display: false },
+            border: { display: true, color: '#94A3B8', width: 1.5 }
+          },
+          x: {
+            grid: { display: false },
+            border: { display: true, color: '#94A3B8', width: 1.5 },
+            ticks: { maxRotation: 0, minRotation: 0, font: { size: 11, weight: 'bold' } }
+          }
+        }
+      }
+    });
+
+    /* ── Brand buttons (ordenados por WTP total desc.) ── */
+    const btnsDiv = document.getElementById('brand-btns');
+    const MARCAS_WTP = [...MARCAS].sort((a, b) => calcWTP(b).total - calcWTP(a).total);
+    selBrand = MARCAS_WTP[0];
+    MARCAS_WTP.forEach(m => {
+      const b = document.createElement('button');
+      b.className = 'bbtn' + (m === selBrand ? ' active' : '');
+      b.dataset.m = m;
+      b.textContent = m.toUpperCase();
+      b.addEventListener('click', () => { selBrand = m; refresh(); });
+      btnsDiv.appendChild(b);
+    });
+
+    /* ── UI builders ───────────────────────────── */
+    function mkRow(id, label, min, max, step, val, accent, onChange) {
+      const d = document.createElement('div'); d.className = 'row';
+      d.innerHTML = `<label>${label}</label>
+    <input type="range" id="${id}" min="${min}" max="${max}" step="${step}"
+           value="${val}" style="accent-color:${accent}">
+    <span class="v" id="${id}_v"></span>`;
+      d.querySelector('input').addEventListener('input', e => { onChange(+e.target.value); refresh(); });
+      return d;
+    }
+
+    function mkNumRow(id, label, min, max, step, val, onChange) {
+      const d = document.createElement('div'); d.className = 'row';
+      d.innerHTML = `<label>${label}</label>
+    <input type="number" id="${id}" class="num-input"
+           min="${min}" max="${max}" step="${step}" value="${val.toFixed(2)}">`;
+      const inp = d.querySelector('input');
+      function commit() {
+        let v = parseFloat(inp.value);
+        if (isNaN(v)) v = val;
+        v = Math.max(min, Math.min(max, v));
+        inp.value = v.toFixed(2);
+        onChange(v); refresh();
+      }
+      inp.addEventListener('change', commit);
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); });
+      return d;
+    }
+
+    function buildCards() {
+      const grid = document.getElementById('grid');
+      const sorted = [...MARCAS].sort((a, b) => calcWTP(b).total - calcWTP(a).total);
+      sorted.forEach(m => {
+        const card = document.createElement('div');
+        card.className = 'card bcard'; card.dataset.m = m;
+        const hdr = document.createElement('div'); hdr.className = 'bhdr';
+        hdr.innerHTML = `<span>${m.toUpperCase()}</span>
+      <div class="hdr-btns">
+        <button class="toggle-btn" data-m="${m}">ON</button>
+        <button class="reset-btn" data-m="${m}">↺ reset</button>
+      </div>`;
+        card.appendChild(hdr);
+
+        /* ── Seção Baseline (última compra) ── */
+        const sB = document.createElement('div'); sB.className = 'sec sb';
+        sB.innerHTML = '<span class="stag">Baseline</span>';
+        sB.appendChild(mkRow(`${m}_uc`, 'Última compra',
+          0, 1, 0.01, S[m].uc, '#6B7280', v => { redistributeUC(m, v); }));
+        card.appendChild(sB);
+
+        /* ── Seção Funil Cognitivo ── */
+        const sR = document.createElement('div'); sR.className = 'sec sr';
+        sR.innerHTML = `<span class="stag">Funil cognitivo</span>
+      <div class="row-d"><label>Não conhece</label><span class="v" id="${m}_nc_v"></span></div>`;
+        sR.appendChild(mkRow(`${m}_conhece`, 'Conhece',
+          0, 1, 0.01, S[m].conhece, 'var(--c-rel)', v => {
+            S[m].conhece = v;
+            if (S[m].considera > v) { S[m].considera = v; }
+            if (S[m].prefere > S[m].considera) { S[m].prefere = S[m].considera; }
+            syncFunnel(m);
+          }));
+        sR.appendChild(mkRow(`${m}_considera`, 'Considera',
+          0, 1, 0.01, S[m].considera, 'var(--c-rel)', v => {
+            S[m].considera = v;
+            if (S[m].conhece < v) { S[m].conhece = v; }
+            if (S[m].prefere > v) { S[m].prefere = v; }
+            syncFunnel(m);
+          }));
+        sR.appendChild(mkRow(`${m}_prefere`, 'Prefere',
+          0, 1, 0.01, S[m].prefere, 'var(--c-rel)', v => {
+            redistributePrefere(m, v);
+          }));
+        card.appendChild(sR);
+
+        /* ── Seção Preço ── */
+        const sP = document.createElement('div'); sP.className = 'sec sp';
+        sP.innerHTML = '<span class="stag">Preço</span>';
+        sP.appendChild(mkNumRow(`${m}_pr`, 'Preço (R$)',
+          M.price_min, M.price_max, 0.10, S[m].price, v => { S[m].price = v; }));
+        card.appendChild(sP);
+
+        grid.appendChild(card);
+      });
+
+      grid.addEventListener('click', e => {
+        const tbtn = e.target.closest('.toggle-btn');
+        if (tbtn) { toggleBrand(tbtn.dataset.m); return; }
+        const rbtn = e.target.closest('.reset-btn');
+        if (rbtn) {
+          const m = rbtn.dataset.m;
+          Object.assign(S[m], JSON.parse(JSON.stringify(DEF[m])));
+          syncInputs(m); resetASCs(); refresh();
+        }
+      });
+
+      document.getElementById('reset-all').addEventListener('click', () => {
+        Object.assign(S, JSON.parse(JSON.stringify(DEF)));
+        MARCAS.forEach(m => {
+          ENABLED[m] = true;
+          const card = document.querySelector(`.bcard[data-m="${m}"]`);
+          if (card) card.classList.remove('disabled');
+          const tbtn = document.querySelector(`.toggle-btn[data-m="${m}"]`);
+          if (tbtn) { tbtn.classList.remove('off'); tbtn.textContent = 'ON'; }
+          syncInputs(m);
+        });
+        resetASCs();
+        refresh();
+      });
+    }
+
+    /** Sincroniza os 3 sliders do funil de uma marca com o estado cumulativo */
+    function syncFunnel(m) {
+      const s = S[m];
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+      ['conhece', 'considera', 'prefere'].forEach(f => set(`${m}_${f}`, s[f]));
+    }
+
+    function syncUCInput(m) {
+      const el = document.getElementById(`${m}_uc`);
+      if (el) el.value = S[m].uc;
+      tv(`${m}_uc`, `${(S[m].uc * 100).toFixed(0)}%`);
+    }
+
+    function syncInputs(m) {
+      const s = S[m];
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+      set(`${m}_pr`, s.price.toFixed(2));
+      syncFunnel(m);
+      syncUCInput(m);
+    }
+
+    /* ── Refresh ───────────────────────────────── */
+    function tv(id, txt) { const el = document.getElementById(id + '_v'); if (el) el.textContent = txt; }
+
+    function refresh() {
+      MARCAS.forEach(m => {
+        const s = S[m];
+        ['conhece', 'considera', 'prefere'].forEach(f =>
+          tv(`${m}_${f}`, `${(s[f] * 100).toFixed(0)}%`));
+        const nc = 1 - s.conhece;
+        tv(`${m}_nc`, nc >= 0 ? `${(nc * 100).toFixed(0)}%` : '—');
+        syncUCInput(m);
+      });
+
+      const P = calcShares();
+      const act = activeMarks();
+      const byShare = act.map(m => ({ m, sh: P[m] }));
+      byShare.sort((a, b) => b.sh - a.sh);
+      const sorted = byShare.map(x => x.m);
+
+      const allVals = [...sorted.map(m => P[m]), P.optout];
+      const xMax = Math.min(1, Math.ceil(Math.max(...allVals) * 100 / 5) * 5 / 100 + 0.02);
+      shareCh.options.scales.x.max = xMax;
+      shareCh.data.labels = [...sorted.map(m => m.toUpperCase()), 'OPT-OUT'];
+      shareCh.data.datasets[0].data = allVals;
+      shareCh.data.datasets[0].backgroundColor = [...sorted.map(m => PAL[m] || '#94A3B8'), PAL.optout];
+      shareCh.update('none');
+
+      /* brand analysis buttons: hide disabled, keep active state */
+      const sm = selBrand;
+      document.querySelectorAll('.bbtn').forEach(b => {
+        const bm = b.dataset.m;
+        b.classList.toggle('active', bm === sm);
+        b.classList.toggle('off', !ENABLED[bm]);
+        b.style.display = ENABLED[bm] ? '' : 'none';
+      });
+
+      const MKT_SIZE = 1000;
+      const share = P[sm], revenue = share * S[sm].price * MKT_SIZE, w = calcWTP(sm);
+      const defSh = P_DEF[sm], defRv = defSh * DEF[sm].price * MKT_SIZE;
+      const dSh = share - defSh, dRv = revenue - defRv;
+      const dH = (v, fmt) => {
+        if (Math.abs(v) < 0.0005) return '';
+        const c = v > 0 ? 'up' : 'dn', s = v > 0 ? '+' : '';
+        return ` <span class="delta ${c}">${s}${fmt(v)}</span>`;
+      };
+
+      /* Índice: cada valor R$ ÷ product equity × 100 */
+      const sc = idxMode && w.pe > 0 ? 100 / w.pe : 1;
+      const wtpDisp = idxMode
+        ? (w.total * sc).toFixed(0)
+        : `R$ ${w.total.toFixed(2)}`;
+      const wtpLbl = idxMode ? 'WTP (Índice)' : 'WTP total';
+
+      document.getElementById('metrics').innerHTML =
+        `<div class="mbox"><div class="val">${(share * 100).toFixed(1)}%${dH(dSh, v => `${(v * 100).toFixed(1)}pp`)}</div><div class="lbl">Share simulado</div></div>` +
+        `<div class="mbox"><div class="val">${idxMode ? '—' : `R$ ${revenue.toFixed(0)}${dH(dRv, v => `R$ ${v.toFixed(0)}`)}`}</div><div class="lbl">Receita simulada</div></div>` +
+        `<div class="mbox"><div class="val">${wtpDisp}</div><div class="lbl">${wtpLbl}</div></div>`;
+
+      /* Cabeçalho e sep dinâmicos */
+      document.getElementById('th-prem1').textContent = idxMode ? 'Prêmio Índice' : 'Prêmio R$';
+      document.getElementById('wf-sep').textContent = idxMode ? 'Decomposição do WTP (Índice)' : 'Decomposição do WTP (R$)';
+
+      const tbody = document.getElementById('prem-body');
+      tbody.innerHTML = '';
+      const rivals = [...MARCAS]
+        .map(m => ({ m, wtp: calcWTP(m).total }))
+        .sort((a, b) => b.wtp - a.wtp);
+      rivals.forEach(({ m }) => {
+        const isSelf = m === sm;
+        const wc = calcWTP(m), prem = isSelf ? 0 : w.total - wc.total;
+        const premRs = isSelf ? 0 : w.total - wc.total;
+        const premIdx = isSelf ? 0 : premRs * sc;           /* prêmio em índice */
+        const wtpCIdx = wc.total * sc;                      /* WTP concorrente em índice */
+        /* Prêmio % em R$: prêmio ÷ preço do concorrente */
+        const pctRs = isSelf ? 0 : (S[m].price > 0 ? (premRs / S[m].price * 100) : 0);
+        /* Prêmio % em índice: (idx_sel − idx_conc) ÷ idx_conc × 100 */
+        const pctIdx = isSelf ? 0 : (wtpCIdx > 0 ? (premIdx / wtpCIdx * 100) : 0);
+        const pct = idxMode ? pctIdx : pctRs;
+        const cls = isSelf ? '' : (premRs >= 0 ? 'pos' : 'neg');
+        const sign = premRs >= 0 ? '+' : '';
+        const selfStyle = isSelf ? 'color:#94A3B8;font-style:italic' : '';
+        const nameCell = m.toUpperCase();
+        const val1 = isSelf ? '—'
+          : idxMode ? `${sign}${premIdx.toFixed(0)}`
+            : `${sign}R$ ${premRs.toFixed(2)}`;
+        const val2 = isSelf ? '—' : `${sign}${pct.toFixed(0)}%`;
+        tbody.innerHTML += `<tr style="${selfStyle}">
+      <td style="font-weight:600">${nameCell}</td>
+      <td class="${cls}">${val1}</td>
+      <td class="${cls}">${val2}</td></tr>`;
+      });
+
+      /* Waterfall: valores já em escala correta (R$ ou Índice) */
+      const { pe, baseline, conhece, considera, prefere, total } = w;
+      const a1 = pe * sc, a2 = a1 + baseline * sc, a3 = a2 + conhece * sc,
+        a4 = a3 + considera * sc, a5 = a4 + prefere * sc, totSc = total * sc;
+      wfCh.data.datasets[0].data = [
+        [0, a1], [a1, a2], [a2, a3], [a3, a4], [a4, a5], [0, totSc]
+      ];
+
+      const maxWTP = Math.max(...activeMarks().map(m => calcWTP(m).total * sc));
+      wfCh.options.scales.y.max = idxMode
+        ? Math.ceil(maxWTP / 50) * 50 + 50   /* arredonda em 50 no modo índice */
+        : Math.ceil(maxWTP * 10) / 10 + 0.5;
+      wfCh.update('none');
+
+    }
+
+    /* ── Init ──────────────────────────────────── */
+    buildCards();
+
+    function setMode(idx) {
+      idxMode = idx;
+      document.getElementById('seg-rs').classList.toggle('active', !idxMode);
+      document.getElementById('seg-idx').classList.toggle('active', idxMode);
+      refresh();
+    }
+    document.getElementById('seg-rs').addEventListener('click', () => setMode(false));
+    document.getElementById('seg-idx').addEventListener('click', () => setMode(true));
+
+    refresh();
+
+    (function () {
+      const prices = Object.entries(M.defaults)
+        .map(([m, d]) => `${m.toUpperCase()} R$ ${d.price.toFixed(2)}`).join(' · ');
+      document.getElementById('notes-prices').textContent = prices;
+    })();
+  </script>
+
+</body>
+
+</html>
